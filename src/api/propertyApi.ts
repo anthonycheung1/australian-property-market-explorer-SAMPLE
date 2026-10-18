@@ -356,7 +356,14 @@ export async function getSuburbMarketData(
   }
 
   const url = new URL(API_BASE_URL);
-  url.searchParams.set('suburb', parts.suburb);
+
+  const canonicalSuburb =
+    DEMO_SUBURBS.find(
+      (item) =>
+        item.name.toLowerCase() === parts.suburb.toLowerCase(),
+    )?.name ?? parts.suburb;
+
+  url.searchParams.set('suburb', canonicalSuburb);
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -377,7 +384,7 @@ export async function getSuburbMarketData(
   if (!response.ok) {
     throw new Error(
       result.error ??
-        `Market data request failed (${response.status}).`,
+      `Market data request failed (${response.status}).`,
     );
   }
 
