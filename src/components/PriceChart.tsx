@@ -1,0 +1,46 @@
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import type { HistoricalPoint } from '../types/property';
+import { formatCurrency } from '../utils/formatters';
+
+type PriceChartProps = {
+  data: HistoricalPoint[];
+};
+
+export default function PriceChart({ data }: PriceChartProps) {
+  const chartData = data
+    .filter((point) => point.date && point.price !== null)
+    .map((point) => ({ date: point.date, price: point.price as number }));
+
+  return (
+    <section className="panel" aria-labelledby="price-chart-heading">
+      <h2 id="price-chart-heading">Historical median sale price</h2>
+      {chartData.length === 0 ? (
+        <p className="empty-state">Historical price data is not available for this suburb.</p>
+      ) : (
+        <div className="chart-container">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 12, right: 16, bottom: 8, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis
+                tickFormatter={(value: number) => formatCurrency(value, true)}
+                width={78}
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+              <Line type="monotone" dataKey="price" name="Median sale price" stroke="#2563eb" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </section>
+  );
+}
