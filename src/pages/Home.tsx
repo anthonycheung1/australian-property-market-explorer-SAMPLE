@@ -7,7 +7,7 @@ export default function Home() {
 
   function handleSelect(suburb: SuburbSuggestion) {
     navigate(
-      `/suburb/${encodeURIComponent(suburb.state.toLowerCase())}/${encodeURIComponent(suburb.name.toLowerCase())}/${encodeURIComponent(suburb.postcode)}`
+      `/suburb/${encodeURIComponent(suburb.state.toLowerCase())}/${encodeURIComponent(suburb.name.toLowerCase())}`
     );
   }
 

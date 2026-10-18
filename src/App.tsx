@@ -15,7 +15,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/about" element={<About />} />
-            <Route path="/suburb/:state/:suburb/:postcode" element={<Suburb />} />
+            <Route path="/suburb/:state/:suburb" element={<Suburb />} />
             <Route path="*" element={
               <div className="page">
                 <h1>Page not found</h1>
