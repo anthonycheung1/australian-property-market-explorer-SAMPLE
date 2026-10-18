@@ -1,3 +1,4 @@
+
 import type {
   HistoricalPoint,
   PropertyType,
@@ -30,7 +31,7 @@ const DEMO_SUBURBS: SuburbSuggestion[] = [
   { id: 'nightcliff-nt', name: 'Nightcliff', displayName: 'Nightcliff, NT', state: 'NT', postcode: '' },
 ];
 
-const EMPTY_METRICS: PropertyTypeMetrics = {
+export const EMPTY_METRICS: PropertyTypeMetrics = {
   medianSalePrice: null,
   medianWeeklyRent: null,
   grossRentalYield: null,
@@ -48,7 +49,10 @@ function getValue(value: unknown, ...keys: string[]): unknown {
   let current: unknown = value;
 
   for (const key of keys) {
-    if (!isRecord(current)) return undefined;
+    if (!isRecord(current)) {
+      return undefined;
+    }
+
     current = current[key];
   }
 
@@ -72,7 +76,9 @@ function firstNumber(...values: unknown[]): number | null {
   for (const value of values) {
     const number = toNumber(value);
 
-    if (number !== null) return number;
+    if (number !== null) {
+      return number;
+    }
 
     if (isRecord(value)) {
       const nested = firstNumber(
@@ -88,7 +94,9 @@ function firstNumber(...values: unknown[]): number | null {
         value.days,
       );
 
-      if (nested !== null) return nested;
+      if (nested !== null) {
+        return nested;
+      }
     }
   }
 
@@ -108,6 +116,9 @@ function getGrowth(
   period: '1yr' | '5yr',
 ): number | null {
   const value = toNumber(getValue(payload, type, period));
+
+  // Microburbs returns growth as a decimal fraction:
+  // 0.0769 becomes 7.69%.
   return value === null ? null : value * 100;
 }
 
@@ -115,14 +126,22 @@ function getSeries(
   payload: unknown,
   type: 'house' | 'unit',
 ): Array<{ date: string; value: number }> {
-  const series =
-    getValue(payload, type) ??
-    getValue(payload, type, 'series');
+  const typeData = getValue(payload, type);
 
-  if (!Array.isArray(series)) return [];
+  // Some endpoints return an array directly; others return
+  // an object containing { value, series }.
+  const series = Array.isArray(typeData)
+    ? typeData
+    : getValue(typeData, 'series');
+
+  if (!Array.isArray(series)) {
+    return [];
+  }
 
   return series.flatMap((item) => {
-    if (!isRecord(item)) return [];
+    if (!isRecord(item)) {
+      return [];
+    }
 
     const date = item.date ?? item.period ?? item.month;
     const value = firstNumber(
@@ -133,7 +152,9 @@ function getSeries(
       item.rent,
     );
 
-    if (typeof date !== 'string' || value === null) return [];
+    if (typeof date !== 'string' || value === null) {
+      return [];
+    }
 
     return [{ date, value }];
   });
@@ -157,8 +178,9 @@ function combineHistory(
 
   const dates = [...new Set(allPoints.map((point) => point.date))];
 
-  const toMap = (points: Array<{ date: string; value: number }>) =>
-    new Map(points.map((point) => [point.date, point.value]));
+  const toMap = (
+    points: Array<{ date: string; value: number }>,
+  ) => new Map(points.map((point) => [point.date, point.value]));
 
   const housePriceMap = toMap(housePrices);
   const unitPriceMap = toMap(unitPrices);
@@ -174,6 +196,7 @@ function combineHistory(
     const prices = [housePrice, unitPrice].filter(
       (value): value is number => value !== null,
     );
+
     const rents = [houseRent, unitRent].filter(
       (value): value is number => value !== null,
     );
@@ -198,7 +221,10 @@ function average(
   first: number | null,
   second: number | null,
 ): number | null {
-  if (first !== null && second !== null) return (first + second) / 2;
+  if (first !== null && second !== null) {
+    return (first + second) / 2;
+  }
+
   return first ?? second;
 }
 
@@ -213,27 +239,45 @@ function getTypeMetrics(
   return {
     medianSalePrice: getTypeValue(raw.median_sale_price, type),
     medianWeeklyRent: getTypeValue(raw.median_rent, type),
-    grossRentalYield: yieldValue === null ? null : yieldValue * 100,
+
+    // Convert decimal yield to a percentage.
+    grossRentalYield:
+      yieldValue === null ? null : yieldValue * 100,
+
     annualPriceGrowth: getGrowth(raw.price_growth, type, '1yr'),
     priceGrowth5y: getGrowth(raw.price_growth, type, '5yr'),
+
+    // transaction_volume.house/unit is an object containing
+    // a current value and a historical series.
     salesCount: firstNumber(
       getValue(volume, 'value'),
       getValue(volume, 'count'),
       getValue(volume, 'sold_count_30d'),
     ),
+
     daysOnMarket: getTypeValue(raw.days_on_market, type),
   };
 }
 
 function getAsOf(raw: UnknownRecord): string | null {
-  const payloads = [raw.median_sale_price, raw.median_rent];
+  const payloads = [
+    raw.median_sale_price,
+    raw.median_rent,
+    raw.price_growth,
+    raw.yield_pct,
+    raw.days_on_market,
+  ];
 
   for (const payload of payloads) {
-    if (!isRecord(payload)) continue;
+    if (!isRecord(payload)) {
+      continue;
+    }
 
     const date = payload.as_of ?? payload.asOf ?? payload.date;
 
-    if (typeof date === 'string' && date) return date;
+    if (typeof date === 'string' && date) {
+      return date;
+    }
   }
 
   return null;
@@ -248,7 +292,9 @@ function getSuburbParts(
   let resolvedState = state?.trim() ?? '';
   let resolvedPostcode = postcode?.trim() ?? '';
 
-  const fullMatch = suburb.match(/^(.+?),\s*([A-Z]{2,3})(?:\s+(\d{4}))?$/i);
+  const fullMatch = suburb.match(
+    /^(.+?),\s*([A-Z]{2,3})(?:\s+(\d{4}))?$/i,
+  );
 
   if (fullMatch) {
     suburb = fullMatch[1].trim();
@@ -264,7 +310,9 @@ function getSuburbParts(
 }
 
 /**
- * Existing SearchBar call:
+ * Search the local demonstration suburb list.
+ *
+ * Existing usage:
  * searchSuburbs(query, controller.signal)
  */
 export async function searchSuburbs(
@@ -277,7 +325,9 @@ export async function searchSuburbs(
 
   const normalisedQuery = query.trim().toLowerCase();
 
-  if (!normalisedQuery) return DEMO_SUBURBS;
+  if (!normalisedQuery) {
+    return DEMO_SUBURBS;
+  }
 
   return DEMO_SUBURBS.filter((suburb) =>
     `${suburb.name} ${suburb.displayName} ${suburb.state} ${suburb.postcode}`
@@ -287,7 +337,9 @@ export async function searchSuburbs(
 }
 
 /**
- * Supports both:
+ * Fetch suburb market data from the Cloudflare Worker.
+ *
+ * Supports:
  * getSuburbMarketData('Belmont North, NSW')
  * getSuburbMarketData(name, state, postcode, propertyType)
  */
@@ -307,7 +359,9 @@ export async function getSuburbMarketData(
   url.searchParams.set('suburb', parts.suburb);
 
   const response = await fetch(url.toString(), {
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+    },
   });
 
   let result: WorkerResponse;
@@ -315,34 +369,58 @@ export async function getSuburbMarketData(
   try {
     result = (await response.json()) as WorkerResponse;
   } catch {
-    throw new Error('The market data service returned an invalid response.');
+    throw new Error(
+      'The market data service returned an invalid response.',
+    );
   }
 
   if (!response.ok) {
     throw new Error(
-      result.error ?? `Market data request failed (${response.status}).`,
+      result.error ??
+        `Market data request failed (${response.status}).`,
     );
   }
 
   if (!result.data || !isRecord(result.data)) {
-    throw new Error('The API did not return market data for this suburb.');
+    throw new Error(
+      'The API did not return market data for this suburb.',
+    );
   }
 
   const raw = result.data;
+
   const house = getTypeMetrics(raw, 'house');
   const unit = getTypeMetrics(raw, 'unit');
 
   const allMetrics: PropertyTypeMetrics = {
-    medianSalePrice: average(house.medianSalePrice, unit.medianSalePrice),
-    medianWeeklyRent: average(house.medianWeeklyRent, unit.medianWeeklyRent),
-    grossRentalYield: average(house.grossRentalYield, unit.grossRentalYield),
-    annualPriceGrowth: average(house.annualPriceGrowth, unit.annualPriceGrowth),
-    priceGrowth5y: average(house.priceGrowth5y, unit.priceGrowth5y),
+    medianSalePrice: average(
+      house.medianSalePrice,
+      unit.medianSalePrice,
+    ),
+    medianWeeklyRent: average(
+      house.medianWeeklyRent,
+      unit.medianWeeklyRent,
+    ),
+    grossRentalYield: average(
+      house.grossRentalYield,
+      unit.grossRentalYield,
+    ),
+    annualPriceGrowth: average(
+      house.annualPriceGrowth,
+      unit.annualPriceGrowth,
+    ),
+    priceGrowth5y: average(
+      house.priceGrowth5y,
+      unit.priceGrowth5y,
+    ),
     salesCount:
       house.salesCount !== null && unit.salesCount !== null
         ? house.salesCount + unit.salesCount
         : house.salesCount ?? unit.salesCount,
-    daysOnMarket: average(house.daysOnMarket, unit.daysOnMarket),
+    daysOnMarket: average(
+      house.daysOnMarket,
+      unit.daysOnMarket,
+    ),
   };
 
   const selectedMetrics =
@@ -369,5 +447,3 @@ export async function getSuburbMarketData(
     dataPeriodLabel: getAsOf(raw),
   };
 }
-
-export { EMPTY_METRICS };
