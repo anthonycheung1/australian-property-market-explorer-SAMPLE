@@ -33,3 +33,162 @@ button {
 a {
   color: inherit;
 }
+
+.page-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  box-sizing: border-box;
+}
+
+.suburb-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.suburb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.suburb-header h1 {
+  margin: 0 0 8px;
+}
+
+.suburb-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.property-type-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.property-type-control select {
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+}
+
+.suburb-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-heading h2 {
+  margin: 0 0 6px;
+}
+
+.section-heading p,
+.chart-description {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-card,
+.chart-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 4%);
+}
+
+.stat-card-label {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.stat-card-value {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.stat-card-description {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.data-period {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.chart-card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.chart-description {
+  margin-bottom: 20px;
+}
+
+.chart-container {
+  width: 100%;
+  min-width: 0;
+}
+
+.empty-state {
+  padding: 24px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .page-container {
+    padding: 24px 16px;
+  }
+
+  .stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stat-card-value {
+    font-size: 22px;
+  }
+}
