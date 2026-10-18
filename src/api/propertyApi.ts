@@ -10,7 +10,6 @@ const API_BASE_URL =
   'https://property-yield-proxy.tonycheung75.workers.dev/';
 
 // Microburbs demo-supported suburbs.
-// Postcodes are left blank because they are not required by this API.
 const SUPPORTED_SUBURBS = [
   { name: 'Bondi', state: 'NSW' },
   { name: 'Belmont North', state: 'NSW' },
@@ -23,24 +22,35 @@ const SUPPORTED_SUBURBS = [
   { name: 'Nightcliff', state: 'NT' },
 ];
 
-// Microburbs response types
-interface RentalYieldData {
-  area_name: string;
-  area_level: string;
-  as_of: string;
-  house: number | null;
-  unit: number | null;
+interface MarketPoint {
+  date: string;
+  value: number;
 }
 
-interface RentalYieldResponse {
-  data: RentalYieldData;
+interface MarketMetric {
+  area_name: string;
+  area_level: string;
+  house: number | null;
+  unit: number | null;
+  as_of?: string;
+}
+
+interface MarketSeries {
+  area_name: string;
+  area_level: string;
+  house?: MarketPoint[] | null;
+  unit?: MarketPoint[] | null;
+}
+
+interface MarketAllResponse {
+  data: {
+    median_sale_price?: MarketMetric;
+    median_sale_price_series?: MarketSeries;
+  } | null;
 }
 
 /**
  * Search the locally defined list of supported demo suburbs.
- *
- * Microburbs' current demo setup does not provide the general
- * Domain-style location-search endpoint used by the original code.
  */
 export async function searchSuburbs(
   query: string,
@@ -72,17 +82,16 @@ export async function searchSuburbs(
 }
 
 /**
- * Fetch rental-yield data from the Cloudflare Worker.
+ * Fetch market data from the Cloudflare Worker.
  */
-async function fetchRentalYield(
+async function fetchMarketData(
   suburb: string,
   signal?: AbortSignal
-): Promise<RentalYieldData> {
+): Promise<NonNullable<MarketAllResponse['data']>> {
   const url = new URL(API_BASE_URL);
   url.searchParams.set('suburb', suburb);
 
   const response = await fetch(url, {
-    method: 'GET',
     headers: {
       Accept: 'application/json',
     },
@@ -107,11 +116,11 @@ async function fetchRentalYield(
     );
   }
 
-  const result: RentalYieldResponse = await response.json();
+  const result: MarketAllResponse = await response.json();
 
-  if (!result.data) {
+  if (!result.data?.median_sale_price) {
     throw new Error(
-      'The API response did not contain rental-yield data.'
+      'The API response did not contain median sale price data.'
     );
   }
 
@@ -119,13 +128,8 @@ async function fetchRentalYield(
 }
 
 /**
- * Convert a Microburbs rental-yield response into the existing
+ * Convert Microburbs market data into the existing
  * SuburbMarketData format.
- *
- * Microburbs returns yields as decimal fractions:
- * 0.0335 = 3.35%.
- *
- * Metrics not supplied by this endpoint are represented as null.
  */
 export async function getSuburbMarketData(
   suburb: string,
@@ -146,13 +150,23 @@ export async function getSuburbMarketData(
     );
   }
 
-  const raw = await fetchRentalYield(
+  const raw = await fetchMarketData(
     supportedSuburb.name,
     signal
   );
 
+  const salePrice = raw.median_sale_price;
+
+  if (!salePrice) {
+    throw new Error(
+      'The API response did not contain median sale price data.'
+    );
+  }
+
+  const series = raw.median_sale_price_series;
+
   if (
-    raw.area_name.toLowerCase() !==
+    salePrice.area_name.toLowerCase() !==
     supportedSuburb.name.toLowerCase()
   ) {
     throw new Error(
@@ -160,34 +174,44 @@ export async function getSuburbMarketData(
     );
   }
 
-  const history: HistoricalPoint[] = [];
+  const selectedType = propertyType.toLowerCase();
 
-  const selectedType = String(propertyType).toLowerCase();
+  const medianSalePrice =
+    selectedType === 'house'
+      ? salePrice.house
+      : selectedType === 'unit'
+        ? salePrice.unit
+        : null;
 
-  let grossRentalYield: number | null = null;
+  const points =
+    selectedType === 'house'
+      ? series?.house
+      : selectedType === 'unit'
+        ? series?.unit
+        : null;
 
-  if (selectedType === 'house') {
-    grossRentalYield =
-      raw.house === null ? null : raw.house * 100;
-  } else if (selectedType === 'unit') {
-    grossRentalYield =
-      raw.unit === null ? null : raw.unit * 100;
-  }
+  const history: HistoricalPoint[] = (points ?? []).map(
+    (point) => ({
+      date: point.date,
+      price: point.value,
+      rent: null,
+    })
+  );
 
   return {
-    suburb: raw.area_name,
+    suburb: salePrice.area_name,
     state: supportedSuburb.state,
     postcode: postcode || '',
     propertyType,
-    medianSalePrice: null,
+    medianSalePrice,
     medianWeeklyRent: null,
     salesCount: null,
     daysOnMarket: null,
     annualPriceGrowth: null,
-    grossRentalYield,
+    grossRentalYield: null,
     history,
-    dataPeriodLabel: raw.as_of
-      ? `Rental yield data updated ${raw.as_of}`
+    dataPeriodLabel: salePrice.as_of
+      ? `Sale price data updated ${salePrice.as_of}`
       : undefined,
   };
 }
