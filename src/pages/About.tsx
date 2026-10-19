@@ -13,6 +13,20 @@ export default function About() {
         observation period. Missing values are shown as unavailable rather than invented.
         This project is for learning and informational purposes, not financial advice.
       </p>
+      <p>
+        Data is available only for the following suburbs via <a href="">Microburbs</a> for free:
+        <ul>
+          <li>Bondi (NSW)</li>
+          <li>Belmont North (NSW)</li>
+          <li>St Kilda (VIC)</li>
+          <li>Fortitude Valley (QLD)</li>
+          <li>Subiaco (WA)</li>
+          <li>Unley (SA)</li>
+          <li>Sandy Bay (TAS)</li>
+          <li>Kambah (ACT)</li>
+          <li>Nightcliff (NT)</li>
+        </ul>
+      </p>
       <h2>Technology</h2>
       <p>React, TypeScript, Vite, React Router and Recharts.</p>
     </div>
