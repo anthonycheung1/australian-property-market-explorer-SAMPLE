@@ -14,7 +14,7 @@ export default function About() {
         This project is for learning and informational purposes, not financial advice.
       </p>
       <p>
-        Data is available only for the following suburbs via <a href="">Microburbs</a> for free:
+        Data is available only for the following suburbs via <a href="https://www.microburbs.com.au/developers/api-docs">Microburbs</a> for free:
         <ul>
           <li>Bondi (NSW)</li>
           <li>Belmont North (NSW)</li>
